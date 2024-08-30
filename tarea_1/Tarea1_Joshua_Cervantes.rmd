@@ -1,0 +1,699 @@
+---
+title: "Tarea 12"
+output:
+  prettydoc::html_pretty:
+      theme: cayman
+author: "Joshua Cervantes"
+date:  "`r format(Sys.time(), '%d %B, %Y')`"
+callout-icon: false
+---
+
+
+```{r set_up, message = FALSE}
+#Se establece el directorio al archivo fuente
+#try(setwd(dirname(rstudioapi::getActiveDocumentContext()$path)))
+#try(setwd("C:\\Users\\User\\OneDrive - Universidad de Costa Rica\\Documents\\UCR\\2024\\Topicos_de_analisis_de_datos_2\\tareas\\tarea_10"))
+knitr::opts_chunk$set(warnings = FALSE, message = FALSE)
+#Se cargan los paquete
+library(RSDA)
+library(ggpolypath)
+library(tidyverse)
+#Se establece el tema por defecto para los graficos
+theme_set(theme_minimal())
+
+```
+
+# Funciones de uso general
+
+# Ejercicio 1
+
+```{r tabla_painters}
+# Se carga la data
+library(MASS)
+data(painters)
+painters
+```
+
+
+## a
+
+```{r contruccion_tabla_sym}
+# Se construye una tabla simbolica
+(sym_painters <- classic.to.sym(painters, concept = "School"))
+```
+
+## b
+```{r plot_primeras_sym_painters}
+#Grafico de la tabla resultante
+plot(sym_painters[1:4,])
+```
+
+
+## c
+
+```{r}
+# Se procede a graficar toda la tabla
+plot(sym_painters)
+```
+
+## d
+```{r}
+# Se procede a estimar la media sinbolica
+
+lapply(sym_painters, FUN = mean, method = "interval")
+```
+
+
+```{r}
+# Se procede a estimar la mediana
+lapply(sym_painters, FUN = median, method = "interval")
+```
+
+
+
+```{r}
+# Se procede a estimar la varianza
+lapply(sym_painters, FUN = var, method = "interval")
+```
+
+
+```{r}
+# Se procede a estimar la desviacion estandar
+lapply(sym_painters, FUN = sd, method = "interval")
+```
+
+```{r}
+# Se procede a estimar la desviacion estandar
+cor(sym_painters$Composition, sym_painters$Drawing)
+```
+
+## e 
+
+```{r}
+# Se realiza un grafico de radar
+sym.radar.plot(sym_painters[1:2,])
+```
+
+En este caso se puede observar que el individuo A presenta una mayor varianza en 
+todas las mediciones en comparación con el individuo B. Además, se puede
+observar que el individuo B presenta una menor varianza en la variable
+de Drawing. Por lo que puede decirse que el individuo B es más consistente.
+
+```{r}
+# Se realiza un grafico de radar
+sym.radar.plot(sym_painters[3:5,])
+```
+
+
+Aquí se puede obsevar que el individuo E presenta una mayor 
+varianza con respecto a los individuo C y D, al tener intervalos con
+una mayor extensión. Sin, embargo el individuo E presenta valores más
+bajos de Colour. 
+
+## f
+
+```{r}
+# Se realiza un ACP con el metodo
+# clasico
+acp_classic_painters <- sym.pca(sym_painters, 'classic')
+plot(acp_classic_painters, choix='ind')
+```
+
+
+En este caso se puede obsevar que el individuo G se encuentra más alejado
+del resto al menos al considerar sus puntos medios. En este caso se puede 
+obsevar que los puntos A, B y C son los que se encuentran más cercanos 
+respecto a las primeras dos componentes principales. Cabe destacar que 
+que en conjunto las dos primeras componentes principales tienen cerca
+de un 78% de inercia acumulada.
+
+```{r}
+plot(acp_classic_painters, choix='var')
+```
+
+
+Se puede observar en el círculo de correlaciones que las variables
+de Expression y Composition de acuerdo a los puntos medios son las
+que presentan la mayor correlación. Mientras las de Colour y Drawing
+son las que presentan menor correlación. Se puede observar que 
+las 4 variable se pueden considerar bien representadas en el plano 
+principal.
+
+
+
+```{r}
+# Se realiza un ACP con el metodo
+# simbolico
+acp_sym_painters <- sym.pca(sym_painters, method = 'centers')
+plot(acp_sym_painters, choix='ind')
+```
+
+
+Al observar el ACP simbólico se puede observar que el
+individuo A es el que presenta la mayor varianza al presentar una caja con 
+mayor área. Por otro lado se puede observar que el individuo que 
+presenta la menor varianza es el B que posee una menor área. 
+Se puede destacar el hecho de que todos los individuos se encuentran
+sobreposicionados.
+
+```{r}
+plot(acp_sym_painters, choix='var')
+```
+
+## g
+```{r hclust_painters}
+# Se hace una clusterizacion jeraquica
+sym_dist_painters <- sym.dist.interval(sym.data = sym_painters,
+                        method = "Gowda.Diday")
+sym_hclust_painters <- hclust(sym_dist_painters)
+plot(sym_hclust_painters, hang = -1)
+```
+
+En este caso con la distancia de Gowda-Diday se puede observar que 
+A y E son los que presentan una menor distancia entre los individuos. 
+Además, D, F, G y JH presentan distancias similares entre si. Cabe 
+destacrar que los que se encutran más alejados son B y C, incluso entre si.
+
+
+```{r hclust_ichino_painters}
+#Billard distance
+sym_dist_painters <- sym.dist.interval(sym.data = sym_painters,
+                        method = "Ichino")
+sym_hclust_painters <- hclust(sym_dist_painters)
+plot(sym_hclust_painters, hang = -1)
+
+```
+
+Con la distancia de Ichino se puede observar que los individuos que presentan
+una menor distancia son E y G. Además B, C y H presentan una distancia 
+similar entre si, pero se encuentran alejados de los demás. El 
+resto de elementos parecen encontrarse alejados. 
+
+
+```{r hclust_hausdorff_painters}
+#Billard distance
+sym_dist_painters <- sym.dist.interval(sym.data = sym_painters,
+                        gamma = 0.5,
+                        method = "Hausdorff", 
+                        normalize = FALSE,
+                        SpanNormalize = TRUE,
+                        euclidea = TRUE,
+                        q = 2)
+sym_hclust_painters <- hclust(sym_dist_painters)
+plot(sym_hclust_painters, hang = -1)
+
+```
+
+Según la distancia de Hausdorff se puede observar que una vez más A y E
+se encuentran agrupados como con la distancia de Gowda-Diday. Sin embargo, 
+con esta distancia se obtiene claramente una distancia entre todos los 
+teniendo que los más cercanos son C y H como en el caso de la distancia de 
+Ichino.
+
+
+```{r sym_kmeans}
+
+# Se efectua un kmeans
+sym_kmeans_painter <- sym.kmeans(sym_painters, k = 3)
+
+```
+
+
+
+# Ejercicio 2
+
+```{r}
+# Se leen los datos de accidentes
+df_accidents <- read.csv("./Datos/accidents_2017.csv")
+
+# Se muestran los nombres de las columnas
+df_accidents %>% colnames
+df_accidents %>%head
+
+# Se convierte a tipo simbolico segun las tablas 
+# seleccionadas y la variable Neighborhood.Name
+sym_accidents <- classic.to.sym(df_accidents, 
+  concept =  "Neighborhood.Name", 
+  variables = c("Mild.injuries", 
+    "Victims", 
+    "Vehicles.involved", 
+    "Longitude", 
+    "Latitude", 
+    "Hour"
+    )
+)
+
+```
+
+
+## a
+```{r}
+# Se procede a estimar la media sinbolica
+lapply(sym_accidents, FUN = mean, method = "interval")
+```
+
+
+```{r}
+# Se procede a estimar la mediana
+lapply(sym_accidents, FUN = median, method = "interval")
+```
+
+
+
+```{r}
+# Se procede a estimar la varianza
+lapply(sym_accidents, FUN = var, method = "interval")
+```
+
+
+```{r}
+# Se procede a estimar la desviacion estandar
+lapply(sym_accidents, FUN = sd, method = "interval")
+```
+
+```{r}
+# Se procede a estimar la desviacion estandar
+cor(sym_accidents$Mild.injuries, sym_accidents$Hour)
+```
+
+
+## c
+```{r}
+# Se realiza un ACP con el metodo
+# simbolico
+acp_sym_accidents <- sym.pca(sym_accidents, 'centers')
+plot(acp_sym_accidents, choix='ind')
+```
+
+
+```{r}
+plot(acp_sym_accidents, choix='var')
+```
+
+## d
+```{r hclust_accidents}
+# Se hace una clusterizacion jeraquica
+sym_dist_accidents <- sym.dist.interval(sym.data = sym_accidents,
+                        method = "Gowda.Diday")
+sym_hclust_accidents <- hclust(sym_dist_accidents)
+plot(sym_hclust_accidents, hang = -1)
+```
+
+
+```{r hclust_ichino_accidents}
+#Billard distance
+sym_dist_accidents <- sym.dist.interval(sym.data = sym_accidents,
+                        method = "Ichino")
+sym_hclust_accidents <- hclust(sym_dist_accidents)
+plot(sym_hclust_accidents, hang = -1)
+
+```
+
+
+```{r hclust_hausdorff_accidents}
+#Billard distance
+sym_dist_accidents <- sym.dist.interval(sym.data = sym_accidents,
+                        gamma = 0.5,
+                        method = "Hausdorff", 
+                        normalize = FALSE,
+                        SpanNormalize = TRUE,
+                        euclidea = TRUE,
+                        q = 2)
+sym_hclust_accidents <- hclust(sym_dist_accidents)
+plot(sym_hclust_accidents, hang = -1)
+
+```
+
+
+```{r sym_kmeans_accidents}
+
+# Se efectua un kmeans
+sym_kmeans_accidents <- sym.kmeans(sym_accidents, k = 3)
+
+```
+
+# Ejercicio 3
+
+
+
+
+En este caso se van a usar los datos del proyecto que 
+ha sido llamado PMAP. Los datos provienen de Reiss y Stricker (2012).
+Los mismo corresponden a métricas que se realizaron a 9 sujetos 
+con 3 unidades de medida inercial (IMUs) y monitores de ritmo cardiaco. 
+Los sensores fueron colocados en 3 partes del cuerpo de cada individuo. 
+Se colocó uno en el pecho, uno en la mano dominante y uno 
+en el tobillo de la pierna dominante. Los sensores cuentas 
+con dos acelerometros, un giroscopio y un magnetometro 
+todos funcionando en tres ejes. Por lo que, posteriormente
+se va ver que para cada parte del IMU se tienen tres valores. 
+
+Los datos recolectaron durante 10 horas y corresponden a 
+18 actividades diferentes. En total la tabla cuenta con 2.872.533 registros.
+ 
+Las variables de la tabla original son:
+ 
+ - timestamp: Momento en que se tomó la métrica.
+ - actividad: En donde se ubican:
+ 
+  - lying
+  - sitting
+  - standing
+  - walking
+  - running
+  - cycling
+  - Nordic walking
+  - watching TV
+  - computer work
+  - car driving
+  - ascending stairs
+  - descending stairs
+  - vacuum cleaning
+  - ironing
+  - folding laundry
+  - house cleaning
+  - playing soccer
+  - rope jumping
+  - other (transient activities)
+  
+ - ritmo_cardiaco: Es el ritmo cardiaco
+ - Posteriormente se encuentran las variables 
+ relacionadas con la temperatura de cada parte
+ - Se encuentran las variables relacionadas con 
+ cada parte del sensor (dos acelerometros, un giroscopio y un magnetometro)
+ a cada una de estasa variables se le ha puesto la parte 
+ del cuerpo, la parte del dispositivo y se le ha asignado un 
+ número. 
+
+
+```{r lectura_archivos, eval = FALSE}
+dir <- paste("./pamap2+physical+activity+monitoring/subject10", 1:9, ".dat", sep = "")
+
+# Se procede a leer estos archivos y unirlos en uno solo
+df_pamap <- read.table(dir[1])
+df_pamap <- df_pamap %>%
+  mutate(individuo = 1)
+
+for(i in 2:9){
+  # Se procede a leer estos archivos y unirlos en uno solo
+  df_pamap_aux <- read.table(dir[i])
+  df_pamap_aux <- df_pamap_aux %>%
+    mutate(individuo = i)
+  
+  df_pamap <- df_pamap %>%
+    rbind(df_pamap_aux) 
+
+  rm(df_pamap_aux)
+
+}
+```
+
+```{r eval = FALSE}
+save(file = "./pamap2+physical+activity+monitoring/pamap.RData", df_pamap)
+```
+
+```{r eval = FALSE}
+
+# Se va cambiar el nombre de las variables
+# y las variables 
+
+mano <- c("mano_temp", 
+    "aceleracion_mano_1", 
+    "aceleracion_mano_2", 
+    "aceleracion_mano_3", 
+    "aceleracion_mano_4", 
+    "aceleracion_mano_5", 
+    "aceleracion_mano_6", 
+    "giroscopio_mano_1", 
+    "giroscopio_mano_2", 
+    "giroscopio_mano_3", 
+    "magnetometro_mano_1", 
+    "magnetometro_mano_2", 
+    "magnetometro_mano_3", 
+    "orientacion_mano_1", 
+    "orientacion_mano_2", 
+    "orientacion_mano_3", 
+    "orientacion_mano_4"
+  )
+
+pecho <- gsub("mano", "pecho", mano)
+tobillo <- gsub("mano", "tobillo", mano)
+
+
+
+colnames(df_pamap) <- c(
+  "timestamp", 
+  "actividad", 
+  "ritmo_cardiaco",
+  mano, 
+  pecho, 
+  tobillo, 
+  "individuo"
+)
+
+
+df_pamap <- df_pamap %>%
+  mutate(
+    actividad = case_when(
+      actividad == 1 ~ "lying", 
+      actividad == 2 ~ "sitting", 
+      actividad == 3 ~ "standing", 
+      actividad == 4 ~ "walking", 
+      actividad == 5 ~ "running", 
+      actividad == 6 ~ "cycling", 
+      actividad == 7 ~ "Nordic walking", 
+      actividad == 9 ~ "watching TV", 
+      actividad == 10 ~ "computer work", 
+      actividad == 11 ~ "car driving", 
+      actividad == 12 ~ "ascending stairs", 
+      actividad == 13 ~ "descending stairs", 
+      actividad == 16 ~ "vacuum cleaning", 
+      actividad == 17 ~ "ironing", 
+      actividad == 18 ~ "folding laundry", 
+      actividad == 19 ~ "house cleaning", 
+      actividad == 20 ~ "playing soccer", 
+      actividad == 24 ~ "rope jumping", 
+      actividad == 0 ~ "other", 
+      .default = as.character(actividad)
+    )
+  )
+
+save(file = "./pamap2+physical+activity+monitoring/pamap.RData", df_pamap)
+```
+
+
+## a
+
+En este caso se escoge el concepto individuo-actividad, y se eliminan las filas con NA. Además, se elimina la variable
+de ritmo_cardiaco dado que es la que pierde un mayor cantidad de información como se observa a continuación. 
+También, se eliminan las de orientación.
+
+```{r}
+load(file = "./pamap2+physical+activity+monitoring/pamap.RData")
+library(skimr)
+skim(df_pamap)
+
+```
+
+
+
+
+
+```{r}
+
+df_pamap <- df_pamap %>%
+  dplyr::select(-ritmo_cardiaco) %>%
+  dplyr::select(-contains("orientacion")) %>%
+  drop_na
+
+# Se procede a generar una tabla simbolica
+sym_pamap <- classic.to.sym(df_pamap, concept = c("individuo", "actividad"))
+
+```
+
+```{r}
+sym_pamap
+```
+
+
+
+## b
+
+### a
+```{r plot_primeras_sym_pamap}
+#Grafico de la tabla resultante
+plot(sym_pamap[1:4,])
+```
+
+
+### b
+
+```{r}
+# Se procede a graficar toda la tabla
+plot(sym_pamap)
+```
+```{r}
+View(sym_pamap)
+```
+### c
+```{r}
+# Se procede a estimar la media sinbolica
+
+lapply(sym_pamap, FUN = mean, method = "interval")
+```
+
+
+```{r}
+# Se procede a estimar la mediana
+lapply(sym_pamap, FUN = median, method = "interval")
+```
+
+
+
+```{r}
+# Se procede a estimar la varianza
+lapply(sym_pamap, FUN = var, method = "interval")
+```
+
+
+```{r}
+# Se procede a estimar la desviacion estandar
+lapply(sym_pamap, FUN = sd, method = "interval")
+```
+
+```{r}
+# Se procede a estimar la desviacion estandar
+cor(sym_pamap$mano_temp, sym_pamap$aceleracion_mano_1)
+```
+
+### d 
+
+```{r}
+# Se realiza un grafico de radar
+sym.radar.plot(sym_pamap[1:2,])
+```
+
+En este caso se puede observar que el individuo A presenta una mayor varianza en 
+todas las mediciones en comparación con el individuo B. Además, se puede
+observar que el individuo B presenta una menor varianza en la variable
+de Drawing. Por lo que puede decirse que el individuo B es más consistente.
+
+```{r}
+# Se realiza un grafico de radar
+sym.radar.plot(sym_pamap[3:5,])
+```
+
+
+Aquí se puede obsevar que el individuo E presenta una mayor 
+varianza con respecto a los individuo C y D, al tener intervalos con
+una mayor extensión. Sin, embargo el individuo E presenta valores más
+bajos de Colour. 
+
+### e
+
+```{r}
+# Se realiza un ACP con el metodo
+# clasico
+acp_classic_pamap <- sym.pca(sym_pamap, 'classic')
+plot(sym_pamap, choix='ind')
+```
+
+
+En este caso se puede obsevar que el individuo G se encuentra más alejado
+del resto al menos al considerar sus puntos medios. En este caso se puede 
+obsevar que los puntos A, B y C son los que se encuentran más cercanos 
+respecto a las primeras dos componentes principales. Cabe destacar que 
+que en conjunto las dos primeras componentes principales tienen cerca
+de un 78% de inercia acumulada.
+
+```{r}
+plot(acp_classic_pamap, choix='var')
+```
+
+
+Se puede observar en el círculo de correlaciones que las variables
+de Expression y Composition de acuerdo a los puntos medios son las
+que presentan la mayor correlación. Mientras las de Colour y Drawing
+son las que presentan menor correlación. Se puede observar que 
+las 4 variable se pueden considerar bien representadas en el plano 
+principal.
+
+
+
+```{r}
+# Se realiza un ACP con el metodo
+# simbolico
+acp_sym_pamap <- sym.pca(sym_pamap, method = 'centers')
+plot(acp_sym_pamap, choix='ind')
+```
+
+
+Al observar el ACP simbólico se puede observar que el
+individuo A es el que presenta la mayor varianza al presentar una caja con 
+mayor área. Por otro lado se puede observar que el individuo que 
+presenta la menor varianza es el B que posee una menor área. 
+Se puede destacar el hecho de que todos los individuos se encuentran
+sobreposicionados.
+
+```{r}
+plot(acp_sym_pamap, choix='var')
+```
+
+### f
+```{r hclust_pamap}
+# Se hace una clusterizacion jeraquica
+sym_dist_pamap <- sym.dist.interval(sym.data = sym_pamap,
+                        method = "Gowda.Diday")
+sym_hclust_pamap <- hclust(sym_dist_pamap)
+plot(sym_hclust_pamap, hang = -1)
+```
+
+En este caso con la distancia de Gowda-Diday se puede observar que 
+A y E son los que presentan una menor distancia entre los individuos. 
+Además, D, F, G y JH presentan distancias similares entre si. Cabe 
+destacrar que los que se encutran más alejados son B y C, incluso entre si.
+
+
+```{r hclust_ichino_pamap}
+#Billard distance
+sym_dist_pamap <- sym.dist.interval(sym.data = sym_pamap,
+                        method = "Ichino")
+sym_hclust_pamap <- hclust(sym_dist_pamap)
+plot(sym_hclust_pamap, hang = -1)
+
+```
+
+Con la distancia de Ichino se puede observar que los individuos que presentan
+una menor distancia son E y G. Además B, C y H presentan una distancia 
+similar entre si, pero se encuentran alejados de los demás. El 
+resto de elementos parecen encontrarse alejados. 
+
+
+```{r hclust_hausdorff_pamap}
+#Billard distance
+sym_dist_pamap <- sym.dist.interval(sym.data = sym_pamap,
+                        gamma = 0.5,
+                        method = "Hausdorff", 
+                        normalize = FALSE,
+                        SpanNormalize = TRUE,
+                        euclidea = TRUE,
+                        q = 2)
+sym_hclust_pamap <- hclust(sym_dist_pamap)
+plot(sym_hclust_pamap, hang = -1)
+
+```
+
+Según la distancia de Hausdorff se puede observar que una vez más A y E
+se encuentran agrupados como con la distancia de Gowda-Diday. Sin embargo, 
+con esta distancia se obtiene claramente una distancia entre todos los 
+teniendo que los más cercanos son C y H como en el caso de la distancia de 
+Ichino.
+
+
+```{r sym_kmeans_pamap}
+
+# Se efectua un kmeans
+sym_kmeans_pamap <- sym.kmeans(sym_pamap, k = 3)
+
+```
+
