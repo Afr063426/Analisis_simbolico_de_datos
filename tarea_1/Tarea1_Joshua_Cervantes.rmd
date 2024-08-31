@@ -1,5 +1,5 @@
 ---
-title: "Tarea 12"
+title: "Tarea 1"
 output:
   prettydoc::html_pretty:
       theme: cayman
@@ -18,6 +18,8 @@ knitr::opts_chunk$set(warnings = FALSE, message = FALSE)
 library(RSDA)
 library(ggpolypath)
 library(tidyverse)
+library(kableExtra)
+
 #Se establece el tema por defecto para los graficos
 theme_set(theme_minimal())
 
@@ -150,15 +152,27 @@ plot(acp_sym_painters, choix='ind')
 
 
 Al observar el ACP simbólico se puede observar que el
-individuo A es el que presenta la mayor varianza al presentar una caja con 
+individuo A es el que presenta la mayor variabilidad al presentar una caja con 
 mayor área. Por otro lado se puede observar que el individuo que 
-presenta la menor varianza es el B que posee una menor área. 
+presenta la menor variabilidad es el B que posee una menor área. 
 Se puede destacar el hecho de que todos los individuos se encuentran
 sobreposicionados.
 
 ```{r}
 plot(acp_sym_painters, choix='var')
 ```
+
+Aquí se puede observar que la variable
+que se ve menos representada es lade colour. 
+Sin embargo, el resto presentan una representación, 
+similar. Se puede observar que de las 
+tres que presentan la mejor representación, 
+Composotion y Drawing son los que presentan
+la posible menor correlación a tener uno de los 
+ángulos más grandes, y algo similar ocurre entre 
+Drawing y Expression. Composition y Expression 
+presentan un comportamiento similar. 
+
 
 ## g
 ```{r hclust_painters}
@@ -211,12 +225,63 @@ teniendo que los más cercanos son C y H como en el caso de la distancia de
 Ichino.
 
 
-```{r sym_kmeans}
 
-# Se efectua un kmeans
-sym_kmeans_painter <- sym.kmeans(sym_painters, k = 3)
+
+
+```{r sym_kmeans_painter}
+
+tot.withinss <- c()
+k <- c()
+
+for(i in 2:7){
+  
+  # Se efectua un kmeans
+   k <- c(k, i)
+   tot.withinss <- c(tot.withinss,  
+    sym.kmeans(sym_painters, k = i)$tot.withinss)
+}
+
+ggplot(, aes(x = k, tot.withinss)) +
+  geom_point() + 
+  geom_line() +
+  labs(x = "k", y = "Suma de cuadrados dentro del cluster")
+
 
 ```
+
+Se nota claramente un codo en 4, por lo que se toma este valor.
+Se muestra el cluster al que pertenece el individuo y la tabla nuevamente
+para interpretar los resultados
+
+```{r}
+# Se efectua un kmeans
+sym_kmeans_painter <- sym.kmeans(sym_painters, k = 4)
+sym_kmeans_painter$cluster
+sym_painters
+```
+
+Se puede obsevar que el individuo D queda solo. 
+En el ACP clásico se había observado que de hecho
+este individuo quedaba alejado de los demás y al 
+observar el ACP simbólico se puede ver que este individuo
+sí presenta una tendencia hacia la derecha que no presentan los 
+demás. B, C y H quedan el mismo cluster, de hecho
+si se observar el ACP simbólico se puede observar
+que las cajas de B y C se ven contenidas en H. 
+
+A queda con F si observa a pesar de que A muestra 
+la mayor variabilidad este presenta valores similares
+en Colour a F. Esta variable es la peor representada en 
+el plano prinicipal. 
+
+Finanlmente se puede observar que quedaron juntos 
+E y G, de hecho con la distancia Ichino
+se obtenie que estos son los que presentan 
+la menor distancia. 
+
+
+
+
 
 
 
@@ -277,7 +342,55 @@ cor(sym_accidents$Mild.injuries, sym_accidents$Hour)
 ```
 
 
+## b
+
+Se realizan dos graficos de radar, primero se seleccionan los tres primeros conceptos.
+Se eliminan la latitud y longitud
+```{r}
+sym.radar.plot(sym_accidents[1:3, c(1,2,3,6)])
+```
+
+Se puede observar que en este caso Can Baró es el que muestra la mayo variabilidad en cuanto 
+a la cantidad de vehículos involucrados en los accidentes. Sin embargo,
+Baró de Viver muestra tener valores más altos de cantidad de heridas
+menores. Todos presentan valores altos en las horas, no obstante, 
+Can Baró presenta mayor variabilidad al tener horas menores. 
+
+Se seleccionan las filas 5 a 8.
+```{r}
+sym.radar.plot(sym_accidents[rev(5:8), c(1,2,3,6)])
+```
+
+En ese caso se puede observar que todos presentan un comporatamiento 
+similar, sin embargo, se encuentra que Hostafrancs presenta valores
+más altos de víctima, vehículos involucrados y heridas menores. 
+En el caso de Ciutat Meridiana se encuentra que presenta una 
+menor variabilidad que todos los demás vecindarios. 
+
 ## c
+```{r}
+# Se realiza un ACP con el metodo
+# clasico
+acp_classic_accidents <- sym.pca(sym_accidents, 'classic')
+plot(acp_classic_accidents, choix='ind')
+```
+
+
+En este caso se puede observar que existen vecindarios
+que se alejan claramente de lo demás como Vallbona y 
+Sant Andreu. Los demás tienen a agruparse de cierta forma.
+
+```{r}
+plot(acp_classic_accidents, choix='var')
+```
+
+Se puede observar que existe gran correlación entre 
+la cantidad de victimas y las heridas menores. La 
+variable que se ve menos representada en este 
+plano es la cantidad de vehículos involucrados. 
+
+Se realiza un ACP simbólico. 
+
 ```{r}
 # Se realiza un ACP con el metodo
 # simbolico
@@ -285,13 +398,29 @@ acp_sym_accidents <- sym.pca(sym_accidents, 'centers')
 plot(acp_sym_accidents, choix='ind')
 ```
 
+En este caso se encuentra que Vallbona presenta una menor 
+variabilidad, mientras que Marina del Prat Vermell presenta la mayor
+variabilidad. Se observa que todos presentan una variabilidad similar.
 
 ```{r}
 plot(acp_sym_accidents, choix='var')
 ```
 
+En este caso se puede observar que
+el longitud son las que parecen
+tener menor representación en este plano. Las 
+variables de vehículos involucrados y la hora
+tienen un representación similar. Las variables
+que presentan una de las menores correlaciones 
+son los vehículos involucrados y la longitud. 
+Los vehículos involucrados y las horas presentan 
+la mayor correlación.
+
+
 ## d
-```{r hclust_accidents}
+
+
+```{r hclust_accidents, fig.width=12, fig.height=8}
 # Se hace una clusterizacion jeraquica
 sym_dist_accidents <- sym.dist.interval(sym.data = sym_accidents,
                         method = "Gowda.Diday")
@@ -299,8 +428,12 @@ sym_hclust_accidents <- hclust(sym_dist_accidents)
 plot(sym_hclust_accidents, hang = -1)
 ```
 
+Se puede observar que se pueden formar 8 conjuntos si se corta 
+en el tercer nivel contando desde arriba hacia abajo, esto dado 
+que en este nivel se puede observar que las distancias son menores.
 
-```{r hclust_ichino_accidents}
+
+```{r hclust_ichino_accidents, fig.width=12, fig.height=8}
 #Billard distance
 sym_dist_accidents <- sym.dist.interval(sym.data = sym_accidents,
                         method = "Ichino")
@@ -309,8 +442,14 @@ plot(sym_hclust_accidents, hang = -1)
 
 ```
 
+En este caso también se puede observar que existen claramente
+dos conjuntos ya que muestran una gran distancia 
+en los niveles más altos. Sin embargo, en este 
+caso también puede decidirse hace 8 grupos, no obstante en comparación
+con la distancia anterior aquí se muestran distancias más alejadas. 
 
-```{r hclust_hausdorff_accidents}
+
+```{r hclust_hausdorff_accidents, fig.width=12, fig.height=8}
 #Billard distance
 sym_dist_accidents <- sym.dist.interval(sym.data = sym_accidents,
                         gamma = 0.5,
@@ -324,13 +463,63 @@ plot(sym_hclust_accidents, hang = -1)
 
 ```
 
+Con esta distancia se puede obsservar que existen muchos
+elementos que tienen una gran distancia entre si, esto en 
+comparación con las dos distancias anteriores. Sin embargo, 
+se puede ver una menor distancia en algunos elementos del 
+primero nivel.
+
+
+## e
+Para poder ver el numero de clusters 
+optimo se realiza el grafico del codo para 
+diferentes valores de k.
 
 ```{r sym_kmeans_accidents}
+tot.withinss <- c()
+k <- c()
 
-# Se efectua un kmeans
-sym_kmeans_accidents <- sym.kmeans(sym_accidents, k = 3)
+for(i in 2:10){
+  
+  # Se efectua un kmeans
+   k <- c(k, i)
+   tot.withinss <- c(tot.withinss,  
+    sym.kmeans(sym_accidents, k = i)$tot.withinss)
+}
+
+ggplot(, aes(x = k, tot.withinss)) +
+  geom_point() + 
+  geom_line() +
+  labs(x = "k", "Suma de cuadrados dentro del cluster")
 
 ```
+
+Se puede observar que hay un codo cerca de 5, sin embargo, el valor sigue disminuyendo por lo que se 
+pude observar que el gráfico se estabiliza en 7. Entonces se toma este valor. 
+
+En este caso se presentan los centros para interpretación.
+
+```{r}
+sym_kmeans_accidents <- sym.kmeans(sym_accidents, k = 7)
+sym_kmeans_accidents$centers
+```
+
+
+El grupo 1 destaca por tener niveles altos de vehículos 
+involucrados, pero menor cantidad de heridas menores y 
+víctma. Esto si se compara con el grupo 2 que destaca por 
+tener los valores más altos de vehículos involucrados, 
+heridas menores y víctimas. El grupo 3 destaca por
+tener los niveles más bajos de heridas menores y víctimas, además 
+presenta las horas más altas.
+
+El grupo 4 tiene valores más altos de heridas menores y
+víctimas, pero menor cantidad de vehículos involucrados en 
+comparación con el grupo 1. El grupo 5 es similar al grupo 
+3 salvo tener horas similares a la mayoría de los elementos. 
+Los dos últimos presentas valores similares y en comparación
+con todos los demás conjuntos se puede decir que se encuentran 
+en el medio de estos.
 
 # Ejercicio 3
 
@@ -484,15 +673,18 @@ save(file = "./pamap2+physical+activity+monitoring/pamap.RData", df_pamap)
 
 ## a
 
-En este caso se escoge el concepto individuo-actividad, y se eliminan las filas con NA. Además, se elimina la variable
+En este caso se escoge el concepto individuo y se filtra por la actividad de cycling. Además, se elimina la variable
 de ritmo_cardiaco dado que es la que pierde un mayor cantidad de información como se observa a continuación. 
 También, se eliminan las de orientación.
 
 ```{r}
 load(file = "./pamap2+physical+activity+monitoring/pamap.RData")
 library(skimr)
-skim(df_pamap)
-
+skim_pamap <- skim(df_pamap)
+ skim_pamap %>%
+  kable(format = "html", col.names = colnames(skim_pamap)) %>%
+  kable_styling() %>%
+  kableExtra::scroll_box(width = "720px", height = "50%%")
 ```
 
 
@@ -502,27 +694,38 @@ skim(df_pamap)
 ```{r}
 
 df_pamap <- df_pamap %>%
-  dplyr::select(-ritmo_cardiaco) %>%
+  filter(actividad == "cycling") %>%
+  dplyr::select(-ritmo_cardiaco, -actividad) %>%
   dplyr::select(-contains("orientacion")) %>%
   drop_na
 
 # Se procede a generar una tabla simbolica
-sym_pamap <- classic.to.sym(df_pamap, concept = c("individuo", "actividad"))
+sym_pamap <- classic.to.sym(df_pamap, concept = c("individuo"))
 
 ```
 
 ```{r}
-sym_pamap
+sym_pamap %>%
+  kable(format = "html", col.names = colnames(sym_pamap)) %>%
+  kable_styling() %>%
+  kableExtra::scroll_box(width = "720px", height = "100%")
 ```
 
+Se seleccionan nada más la temperatura y
+las variables relacionadas con el primer acelerometro de la mano.
 
+```{r}
+sym_pamap <- sym_pamap[, 2:5]
+```
 
 ## b
 
+
 ### a
 ```{r plot_primeras_sym_pamap}
+
 #Grafico de la tabla resultante
-plot(sym_pamap[1:4,])
+plot(sym_pamap[1:4, ])
 ```
 
 
@@ -532,9 +735,7 @@ plot(sym_pamap[1:4,])
 # Se procede a graficar toda la tabla
 plot(sym_pamap)
 ```
-```{r}
-View(sym_pamap)
-```
+
 ### c
 ```{r}
 # Se procede a estimar la media sinbolica
@@ -570,24 +771,31 @@ cor(sym_pamap$mano_temp, sym_pamap$aceleracion_mano_1)
 
 ```{r}
 # Se realiza un grafico de radar
-sym.radar.plot(sym_pamap[1:2,])
+sym.radar.plot(sym_pamap[1:2, ])
 ```
 
-En este caso se puede observar que el individuo A presenta una mayor varianza en 
-todas las mediciones en comparación con el individuo B. Además, se puede
-observar que el individuo B presenta una menor varianza en la variable
-de Drawing. Por lo que puede decirse que el individuo B es más consistente.
+En este caso se puede 
+observar que el individuo 1
+en la actividad cycling presenta
+una mayor variabilidad en la mano. 
+Sin embargo, la temperatura es similar. 
 
 ```{r}
 # Se realiza un grafico de radar
-sym.radar.plot(sym_pamap[3:5,])
+sym.radar.plot(sym_pamap[5:5,])
 ```
 
 
-Aquí se puede obsevar que el individuo E presenta una mayor 
-varianza con respecto a los individuo C y D, al tener intervalos con
-una mayor extensión. Sin, embargo el individuo E presenta valores más
-bajos de Colour. 
+
+En este caso se puede obsevar que todos presentan
+una temperatura similar sin mucha variabilidad.  
+El individuo 6 presenta valores más altos en el eje 1 y 3 del primer acelerometro de la mano. 
+Sin embargo, el individuo 5 presenta una mayor
+variabilidad en todas las variables, excepto en 
+el primer eje del primer acelerometro de la mano. 
+
+
+
 
 ### e
 
@@ -595,28 +803,29 @@ bajos de Colour.
 # Se realiza un ACP con el metodo
 # clasico
 acp_classic_pamap <- sym.pca(sym_pamap, 'classic')
-plot(sym_pamap, choix='ind')
+plot(acp_classic_pamap, choix='ind')
 ```
+En este caso se puede obsservar
+qye los individuos 5 y 8 se encuentran 
+claramente alejados de los demás. 
+Los elementos 1 y 2, y 6 y 7 se ven más 
+cercanos entre si. 
 
 
-En este caso se puede obsevar que el individuo G se encuentra más alejado
-del resto al menos al considerar sus puntos medios. En este caso se puede 
-obsevar que los puntos A, B y C son los que se encuentran más cercanos 
-respecto a las primeras dos componentes principales. Cabe destacar que 
-que en conjunto las dos primeras componentes principales tienen cerca
-de un 78% de inercia acumulada.
+
+
 
 ```{r}
 plot(acp_classic_pamap, choix='var')
 ```
 
 
-Se puede observar en el círculo de correlaciones que las variables
-de Expression y Composition de acuerdo a los puntos medios son las
-que presentan la mayor correlación. Mientras las de Colour y Drawing
-son las que presentan menor correlación. Se puede observar que 
-las 4 variable se pueden considerar bien representadas en el plano 
-principal.
+Todas las variables presentan un grado 
+similar de representación. Sin embargo, 
+todos presentan una correlación 
+similar, salvo por temperatura que 
+presenta mayor correlación con el 
+eje 1 del aceletrometro de la mano. 
 
 
 
@@ -628,16 +837,23 @@ plot(acp_sym_pamap, choix='ind')
 ```
 
 
-Al observar el ACP simbólico se puede observar que el
-individuo A es el que presenta la mayor varianza al presentar una caja con 
-mayor área. Por otro lado se puede observar que el individuo que 
-presenta la menor varianza es el B que posee una menor área. 
-Se puede destacar el hecho de que todos los individuos se encuentran
-sobreposicionados.
+Al observar este ACP se puede observar que 
+el individuo 2 es el que muestra 
+la menor variabilidad, mientras que 
+el 8 presenta una mayor variabilidad. 
 
 ```{r}
 plot(acp_sym_pamap, choix='var')
 ```
+
+Se puede observar que todas las variables
+presentan una representación similar. Es 
+interesante observar que la temperatura presenta 
+en este caso un comporatamiento distinto a las otras variables
+y en este caso presenta la menor correlación con 
+todos las demás variables. Las variables del 
+del acelerómetro presentan una correalción similar entre
+si. 
 
 ### f
 ```{r hclust_pamap}
@@ -648,11 +864,10 @@ sym_hclust_pamap <- hclust(sym_dist_pamap)
 plot(sym_hclust_pamap, hang = -1)
 ```
 
-En este caso con la distancia de Gowda-Diday se puede observar que 
-A y E son los que presentan una menor distancia entre los individuos. 
-Además, D, F, G y JH presentan distancias similares entre si. Cabe 
-destacrar que los que se encutran más alejados son B y C, incluso entre si.
-
+Se puede ver que todos presentna una distancia similar. 
+Teniendose que los individuo 2 y 6 son los presentan 
+la menor distancia entre todos y es una distancia similar 
+al conjunto formado por 5 y 6. 
 
 ```{r hclust_ichino_pamap}
 #Billard distance
@@ -663,10 +878,10 @@ plot(sym_hclust_pamap, hang = -1)
 
 ```
 
-Con la distancia de Ichino se puede observar que los individuos que presentan
-una menor distancia son E y G. Además B, C y H presentan una distancia 
-similar entre si, pero se encuentran alejados de los demás. El 
-resto de elementos parecen encontrarse alejados. 
+Aquí cambian los primeros conjuntos y 
+se puede observar que hay una mayor variabilidad
+en las distancias. Los conjuntos formados por
+4 y 6, y 1 y 7 tienen distancias similares. 
 
 
 ```{r hclust_hausdorff_pamap}
@@ -683,17 +898,55 @@ plot(sym_hclust_pamap, hang = -1)
 
 ```
 
-Según la distancia de Hausdorff se puede observar que una vez más A y E
-se encuentran agrupados como con la distancia de Gowda-Diday. Sin embargo, 
-con esta distancia se obtiene claramente una distancia entre todos los 
-teniendo que los más cercanos son C y H como en el caso de la distancia de 
-Ichino.
+Aquí se conserva el primero conjunto mostrado en la distancia de 
+Ichino que es el de 4 y 6. Aquí también se puede 
+observar mayor variabilidad en las distancias en comparación con la 
+distancia Gowda-Diday.
 
 
 ```{r sym_kmeans_pamap}
+tot.withinss <- c()
+k <- c()
 
-# Se efectua un kmeans
-sym_kmeans_pamap <- sym.kmeans(sym_pamap, k = 3)
+for(i in 2:6){
+  
+  # Se efectua un kmeans
+   k <- c(k, i)
+   tot.withinss <- c(tot.withinss,  
+    sym.kmeans(sym_pamap, k = i)$tot.withinss)
+}
+
+ggplot(, aes(x = k, tot.withinss)) +
+  geom_point() + 
+  geom_line() +
+  labs(x = "k", y = "Suma de cuadrados dentro del cluster")
+
 
 ```
 
+Se observa que existe un codo en 3, entonces se toma k igual a 3.
+
+
+```{r}
+# Se efectua un kmeans
+sym_kmeans_pamap <- sym.kmeans(sym_pamap, k = 3)
+sym_kmeans_pamap$cluster
+sym_kmeans_pamap$centers
+```
+
+
+Se puede observar que ningún elemento queda 
+solo. 
+
+Se nota que conjunto 1 es el que 
+presenta aceleración más negativa
+en el eje 1. El conjunto 2 
+presenta valores negativos en los primeros
+dos ejes y una mayor temperatura. 
+El conjunto 3 destaca por tener un 
+valor más grande en la aceleración 
+del segundo eje en comparación con los otro
+conjuntos. 
+
+# Bibliografía
+Reiss, A., & Stricker, D. (2012, Junio). Introducing a new benchmarked dataset for activity monitoring. In 2012 16th international symposium on wearable computers (pp. 108-109). IEEE.
