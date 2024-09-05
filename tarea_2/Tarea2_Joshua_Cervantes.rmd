@@ -1,0 +1,411 @@
+---
+title: "Tarea 1"
+output:
+  prettydoc::html_pretty:
+      theme: cayman
+author: "Joshua Cervantes"
+date:  "`r format(Sys.time(), '%d %B, %Y')`"
+callout-icon: false
+---
+
+
+```{r set_up, message = FALSE}
+#Se establece el directorio al archivo fuente
+#try(setwd(dirname(rstudioapi::getActiveDocumentContext()$path)))
+#try(setwd("C:\\Users\\User\\OneDrive - Universidad de Costa Rica\\Documents\\UCR\\2024\\Topicos_de_analisis_de_datos_2\\tareas\\tarea_10"))
+knitr::opts_chunk$set(warnings = FALSE, message = FALSE)
+#Se cargan los paquete
+library(RSDA)
+library(ggpolypath)
+library(tidyverse)
+library(kableExtra)
+library(openxlsx)
+
+#Se establece el tema por defecto para los graficos
+theme_set(theme_minimal())
+
+```
+
+# Funciones de uso general
+
+```{r}
+#' Esta funcion tiene como objetivo retornar un cojunto seguna
+#' la variable
+#' @param x es la variable sobre la que se va hacer el conjunto
+#' @return retorna la lista en formato string
+
+sym_set <- function(x){
+    if(is.numeric(x)){x <- sort(x)}
+    paste("{", paste(unique(x), collapse = ","), "}", sep = "")
+}
+
+
+#' Esta funcioon tiene como objetivo construir un conjunto del tipo
+#' histogram para la varianble en cuestion
+#' @param x un vector que puede ser numerico o puede ser character
+#' en caso de ser numerico se construyen intervalos y en caso de 
+#' ser caracter entonces se selecciona cada 
+
+sym_hist <- function(x, ponderador = NULL, cortes = 5){
+    if(is.numeric(x)){
+        
+        # Se construye una tabla con la suma por intervalo
+        if(var(x) < 1e-10 | length(x) == 1){
+            y <- table(cut(x[1], cortes))
+        }else{
+            y <- table(cut(x, cortes))
+        }
+
+        #Se estima la proporcion
+        y <- round(y/sum(y),4)
+
+        #Se toman los intervalos
+        x <- rownames(y)
+
+        return(paste(paste(x, y, sep = ":"), collapse = " "))
+
+    }else{
+        y <- table(x)
+
+        y <- round(y/sum(y), 4)
+
+        x <- rownames(y) 
+        
+        return(paste(paste(x, y, sep = ":"), collapse = " "))
+    }
+
+}
+
+
+```
+
+
+# Nota
+
+En algunos casos no se usará la función `classic.to.sym` ya que se desea mostar el concepto y no se desea usar `attr` para traerlo.
+
+# Ejercicio 2.1
+
+```{r}
+
+df_ejercicio_2 <- read.xlsx("./tablas_libro.xlsx")
+```
+
+Caso sin pesos
+```{r}
+ejercicio_2_1_a <- df_ejercicio_2 %>%
+    mutate(Y1 = as.factor(Y1), 
+    genero = Y4) %>%
+    group_by(genero) %>%
+    reframe(ciudad = sym.set(Y1))
+
+
+
+# Se muestra como una tabla de Kable
+ejercicio_2_1_a
+```
+
+
+
+Las listas salen cortadas por lo que se construye con la función construida en la sección de funciones de uso general. 
+
+```{r}
+ejercicio_2_1_a_alt <- df_ejercicio_2 %>%
+  mutate(genero = Y4) %>%
+  group_by(genero) %>%
+  reframe(ciudad = sym_set(Y1))
+
+
+ejercicio_2_1_a_alt %>% kable(format = "html", col.names = colnames(ejercicio_2_1_a)) %>%
+  kable_styling() %>%
+  kableExtra::scroll_box(width = "720px", height = "50%%")
+```
+
+Se hace la lista con pesos 
+```{r}
+ejercicio_2_1_b <- df_ejercicio_2 %>%
+  mutate(Y1 = as.factor(Y1), 
+    genero = Y4) %>%
+  group_by(genero) %>%
+  reframe(ciudad = sym.modal(Y1))
+
+
+ejercicio_2_1_b
+
+```
+
+```{r}
+ejercicio_2_1_b_alt <- df_ejercicio_2 %>%
+  mutate(genero = Y4) %>%
+  group_by(genero) %>%
+  reframe(ciudad = sym_hist(Y1))
+
+
+ejercicio_2_1_b_alt %>% kable(format = "html", col.names = colnames(ejercicio_2_1_b_alt)) %>%
+  kable_styling() %>%
+  kableExtra::scroll_box(width = "720px", height = "50%%")
+```
+
+# Ejercicio 2.2
+
+```{r}
+df_ejercicio_2 %>%
+  mutate(genero = Y4) %>%
+  group_by(genero) %>%
+  reframe(trigliceridos = sym.interval(Y17), 
+  nivel_glucosa = sym.interval(Y18))
+```
+
+
+# Ejercicio 2.3
+
+Con el paquete `RSDA`
+```{r}
+ejercicio_2.3 <- df_ejercicio_2 %>%
+  mutate(genero = Y4) %>%
+  dplyr::select(genero, Y17, Y18) %>%
+  classic.to.sym(
+    concept = genero,
+    trigliceridos = sym.histogram(Y17, breaks = 4), 
+    nivel_glucosa = sym.histogram(Y18, breaks = 2)
+  )
+  
+# Me da problema al plotear
+#plot(ejercicio_2.3[,1:2])
+```
+
+
+Con función programada aquí
+
+```{r}
+ejercicio_2.3 <- df_ejercicio_2 %>%
+  mutate(genero = Y4) %>%
+  group_by(genero) %>%
+  reframe(trigliceridos = sym_hist(Y17, cortes = 4), 
+  nivel_glucosa = sym_hist(Y18, cortes = 2)) 
+  
+ejercicio_2.3 %>%
+  kable(format = "html", col.names = colnames(ejercicio_2.3)) %>%
+  kable_styling() %>%
+  kableExtra::scroll_box(width = "720px", height = "50%%")
+
+```
+
+# Ejercicio 2.4
+
+
+```{r}
+ejercicio_2.4 <- df_ejercicio_2 %>%
+    head(20) %>%
+    mutate(Y5 = as.factor(Y5), 
+    Y6 = as.factor(Y6),
+    genero = Y4) %>%
+    group_by(genero) %>%
+    reframe(estado_civil = sym.modal(Y5), 
+    padres_vivos = sym.modal(Y6)
+    )
+
+ejercicio_2.4 %>%
+  kable(format = "html", col.names = colnames(ejercicio_2.4)) %>%
+  kable_styling() %>%
+  kableExtra::scroll_box(width = "720px", height = "50%%")
+```
+
+# Ejercicio 2.5
+
+```{r}
+summary(df_ejercicio_2 %>% dplyr::select(Y3, Y7, Y14, Y24))
+```
+
+En este caso se considera apropiado mostrar la edad en una variable histograma, 
+dado que hay edades bajas y altas. Para el número de hermanos se considera que 
+una variable multi modal dado que los número se encuentran en un rago que 
+es de fácil lectura. En el caso de los niveles de colesterol HDL y medida 
+la cantidad glóbulos rojos en sangre se considera razonable usar una variables 
+histograma. 
+
+
+```{r}
+
+(ejercicio_2.5 <- df_ejercicio_2 %>%
+  head(20) %>%
+  mutate(genero = factor(Y4), 
+  Y7 = factor(Y7, levels = 0:6), 
+  Y24 = as.numeric(Y24) 
+  ) %>%
+  classic.to.sym(
+    concept = "genero",
+    variables = c("Y3", "Y7", "Y14", "Y24"),
+    edad = sym.histogram(Y3), 
+    n_hermanos = sym.modal(Y7), 
+    nivel_colesterol_hdl = sym.histogram(Y14), 
+    celulas_rojas = sym.histogram(Y24)
+  ) %>% 
+  select(-contains("Y")))
+
+
+```
+
+
+```{r}
+ejercicio_2.5 <- df_ejercicio_2 %>%
+  head(20) %>%
+  mutate(genero = factor(Y4), 
+  Y7 = factor(Y7, levels = 0:6), 
+  Y24 = as.numeric(Y24) 
+  ) %>%
+  group_by(genero) %>%
+  reframe(    
+    edad = sym_hist(Y3), 
+    n_hermanos = sym_hist(Y7), 
+    nivel_colesterol_hdl = sym_hist(Y14), 
+    celulas_rojas = sym_hist(Y24)
+  ) 
+
+ejercicio_2.5 %>%
+  kable(format = "html", col.names = colnames(ejercicio_2.5)) %>%
+  kable_styling() %>%
+  kableExtra::scroll_box(width = "720px", height = "50%%")
+```
+
+# Ejercicio 2.6
+
+```{r}
+
+(ejercicio_2.6 <- df_ejercicio_2 %>%
+  head(51) %>%
+  mutate(genero = factor(Y4), 
+  Y7 = factor(Y7, levels = 0:6), 
+  Y24 = as.numeric(Y24) 
+  ) %>%
+  classic.to.sym(
+    concept = "genero",
+    variables = c("Y3", "Y7", "Y14", "Y24"),
+    edad = sym.histogram(Y3), 
+    n_hermanos = sym.modal(Y7), 
+    nivel_colesterol_hdl = sym.histogram(Y14), 
+    celulas_rojas = sym.histogram(Y24)
+  ) %>% 
+  select(-contains("Y")))
+
+
+```
+
+
+```{r}
+ejercicio_2.6 <- df_ejercicio_2 %>%
+  head(51) %>%
+  mutate(genero = factor(Y4), 
+  Y7 = factor(Y7, levels = 0:6), 
+  Y24 = as.numeric(Y24) 
+  ) %>%
+  group_by(genero) %>%
+  reframe(    
+    edad = sym_hist(Y3), 
+    n_hermanos = sym_hist(Y7), 
+    nivel_colesterol_hdl = sym_hist(Y14), 
+    celulas_rojas = sym_hist(Y24)
+  ) 
+
+ejercicio_2.6 %>%
+  kable(format = "html", col.names = colnames(ejercicio_2.6)) %>%
+  kable_styling() %>%
+  kableExtra::scroll_box(width = "720px", height = "50%%")
+```
+
+# Ejercicio 2.7
+
+```{r}
+# Se construyen los intervalos
+df_ejercicio_2 <- df_ejercicio_2 %>%
+  mutate(edad_int = 
+  factor(case_when(
+    Y3 < 20  ~ "edad<20", 
+    Y3 <= 29  ~ "20-29", 
+    Y3 <= 39  ~ "30-39", 
+    Y3 <= 49  ~ "40-49", 
+    Y3 <= 59  ~ "50-59", 
+    Y3 <= 69  ~ "60-69", 
+    Y3 <= 79  ~ "70-79", 
+    .default = "edad >= 80"
+  ), 
+  levels = c("edad<20", 
+    "20-29", 
+    "30-39", 
+    "40-49", 
+    "50-59", 
+    "60-69", 
+    "70-79", 
+    "edad >= 80"
+  ))
+  )
+```
+
+
+```{r}
+ejercicio_2.7 <- df_ejercicio_2 %>%
+  arrange(edad_int) %>%
+  mutate(
+    Y28 = factor(Y28), 
+    Y29 = factor(Y29)
+  ) %>%
+  group_by(edad_int) %>%
+  reframe(
+    diagnostico_cancer_no_modal = sym.set(Y28), 
+    diagnostico_cancer_modal = sym.modal(Y28), 
+    tratamiento_cancer_pulmon_no_modal = sym.set(Y29), 
+    tratamiento_cancer_pulmon_modal = sym.modal(Y29) , 
+    tratamiento_cancer_pulmon_modal_2 = sym_hist(Y29)
+  )
+
+ejercicio_2.7 %>%
+  kable(format = "html", col.names = colnames(ejercicio_2.7)) %>%
+  kable_styling() %>%
+  kableExtra::scroll_box(width = "720px", height = "50%%")
+```
+# Ejercicio 2.8
+```{r}
+ejercicio_2.8 <- df_ejercicio_2 %>%
+  head(20) %>%
+  mutate(Y24 = as.numeric(Y24), 
+  Y25 = as.numeric(Y25)) %>%
+  rename(celulas_blancas = Y23, 
+  celulas_rojas = Y24, 
+  nivel_hemoglobina = Y25) %>%
+  arrange(edad_int) %>%
+  classic.to.sym(
+    concept = "edad_int", 
+    variables = c("celulas_blancas", "celulas_rojas", "nivel_hemoglobina")
+  )
+
+ejercicio_2.8 %>%
+  kable(format = "html", col.names = colnames(ejercicio_2.8)) %>%
+  kable_styling() %>%
+  kableExtra::scroll_box(width = "720px", height = "50%%")
+```
+
+
+# Ejercicio 3.1
+
+
+# Ejercicio 3.3
+
+
+# Ejercicio 3.3
+
+
+# Ejercicio 3.4
+
+
+# Ejercicio 3.5
+
+
+# Ejercicio 3.6
+
+
+# Ejercicio 3.7
+
+
+# Ejercicio 3.8
+
+# Ejercicio 3.9
